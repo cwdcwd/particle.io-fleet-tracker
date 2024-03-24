@@ -1,0 +1,15 @@
+{
+    "extensions.ignoreRecommendations": true,
+    "C_Cpp.default.configurationProvider": "particle.particle-vscode-core",
+    "files.associations": {
+        "*.ts": "typescript",
+        "*.json": "jsonc",
+        "*.js": "javascript",
+        "*.sh": "shellscript",
+        "*.ino": "cpp",
+        "system_error": "cpp",
+        "cmath": "cpp"
+    },
+    "particle.targetDevice": "boronWim",
+    "C_Cpp.default.cppStandard": "c++17"
+}
