@@ -30,17 +30,17 @@ void GPSManager::update()
 
   checkGPS(); // CWD-- run through the serial buffer and ingest the data
 
-  if ((micros() - lastCellGPSUpdate) > ulCellRefreshInterveral) { // CWD-- update the location via cell geocoding
-    if (Particle.connected()) {
-      log("Connected to particle...");
-      log("Publishing Celluar GPS Locator...");
-      locator.publishLocation();
-      lastCellGPSUpdate = micros();
-      log("Published Celluar GPS Locator event");
-    } else {
-      log("Can't connect to particle"); // CWD-- need to buffer data
-    }
-  }
+  // if ((micros() - lastCellGPSUpdate) > ulCellRefreshInterveral) { // CWD-- update the location via cell geocoding
+  //   if (Particle.connected()) {
+  //     log("Connected to particle...");
+  //     log("Publishing Celluar GPS Locator...");
+  //     locator.publishLocation();
+  //     lastCellGPSUpdate = micros();
+  //     log("Published Celluar GPS Locator event");
+  //   } else {
+  //     log("Can't connect to particle"); // CWD-- need to buffer data
+  //   }
+  // }
 
 }
 
@@ -66,18 +66,18 @@ void GPSManager::processData()
       log("Previous Latitude= ");
       log(String(dblLatitude, 6));
       log("Previous  Longitude= ");
-      log(String(dbPrevLongitude, 6));
+      log(String(dblPrevLongitude, 6));
     }
     // Latitude in degrees (double)
     blnCoordsFromGPS = true;
-    dbPrevLongitude = dblLongitude;
-    dbPrevLatitude = dblLatitude;
+    dblPrevLongitude = dblLongitude;
+    dblPrevLatitude = dblLatitude;
     dblLongitude = gps.location.lng();
     dblLatitude = gps.location.lat();
     lastGPSUpdate = micros();
     blnGPSDataReady = true;
 
-        if (blnDebugOn)
+    if (blnDebugOn)
     {
       log("Latitude= ", false);
       log(String(dblLatitude, 6), false);
@@ -290,19 +290,19 @@ double GPSManager::getLongitude()
 
 double GPSManager::setLongitude(double longitude)
 {
-  dbPrevLongitude = dblLongitude;
+  dblPrevLongitude = dblLongitude;
   dblLongitude = longitude;
-  return dbPrevLongitude;
+  return dblPrevLongitude;
 }
 
 double GPSManager::getPrevLongitude() {
-  return dbPrevLongitude;
+  return dblPrevLongitude;
 }
 
 double GPSManager::setLatitude(double latitude) {
-  dbPrevLatitude = dblLatitude;
+  dblPrevLatitude = dblLatitude;
   dblLatitude = latitude;
-  return dbPrevLatitude;
+  return dblPrevLatitude;
 }
 
 double GPSManager::getLatitude() {
@@ -310,7 +310,7 @@ double GPSManager::getLatitude() {
 }
 
 double GPSManager::getPrevLatitude() {
-  return dbPrevLatitude;
+  return dblPrevLatitude;
 }
 
 double GPSManager::getAltitude() {
@@ -376,8 +376,8 @@ void GPSManager::setDebug(bool blnDebug) {
 //     int s = (micros() - lastGPSUpdate) / 1000000;
 //     log("GPS hasn't been updated in " + String(s) + " seconds. Updating from cellular positioning");
 //     blnCoordsFromGPS = false;
-//     dbPrevLongitude = dblLongitude;
-//     dbPrevLatitude = dblLatitude;
+//     dblPrevLongitude = dblLongitude;
+//     dblPrevLatitude = dblLatitude;
 //     dblLatitude = lat;
 //     dblLongitude = lon;
 //   }

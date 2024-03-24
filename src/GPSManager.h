@@ -52,8 +52,8 @@ class GPSManager {
     bool blnGPSDataReady = false;
     double dblLongitude = 0;
     double dblLatitude = 0;
-    double dbPrevLongitude = 0;
-    double dbPrevLatitude = 0;
+    double dblPrevLongitude = 0;
+    double dblPrevLatitude = 0;
     double dblDistanceMoved = 0;
 
     double dblAltitude = 0;
