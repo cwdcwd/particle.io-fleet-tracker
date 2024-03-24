@@ -1,6 +1,6 @@
 #include <SPI.h>
 #include <Wire.h>
-#include <MCP_CAN.h>
+#include <mcp_can.h>
 #include "CANManager.h"
 
 CANManager::CANManager(int IntPin, int CSPin, bool debugOn) : iIntPin(IntPin), iCSPin(CSPin), blnDebugOn(debugOn), CAN0(iCSPin) {

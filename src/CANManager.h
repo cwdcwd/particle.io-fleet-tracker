@@ -2,7 +2,7 @@
 #ifndef __CANManager_h
 #define __CANManager_h
 
-#include <MCP_CAN.h>
+#include <mcp_can.h>
 
 #define CAN0_DEFAULT_INT A1 // Set INT to pin A1
 #define CAN0_DEFAULT_CS A2  // Set CS to pin A2

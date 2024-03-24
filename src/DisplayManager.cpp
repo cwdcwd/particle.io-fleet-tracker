@@ -37,7 +37,7 @@ void DisplayManager::update(String strText) {
     display.setCursor(0, 0);     // Start at top-left corner
     display.cp437(true);         // Use full 256 char 'Code Page 437' font
 
-    for (int i = 0; i < strText.length(); ++i)
+    for (unsigned int i = 0; i < strText.length(); ++i)
     {
       display.write(strText.charAt(i));
     }
