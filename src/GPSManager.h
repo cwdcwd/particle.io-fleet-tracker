@@ -22,6 +22,8 @@ class GPSManager {
     //CWD-- getters
     bool areCoordsFromGPS();
     bool setAreCoordsFromGPS(bool areCoordsFromGPS);
+    bool isGPSDataReady();
+    bool setIsGPSDataReady(bool isReady);
     double getLongitude();
     double setLongitude(double longitude);
     double getPrevLongitude();
@@ -42,11 +44,12 @@ class GPSManager {
     void setDebug(bool blnDebug);
     void log(String str, bool blnWithNewLine = false);
 
-    static double GPSManager::haversine(double lat1, double lon1, double lat2, double lon2);
+    static double haversine(double lat1, double lon1, double lat2, double lon2);
 
   private : // Private members
     bool blnDebugOn = false;
     bool blnCoordsFromGPS = false;
+    bool blnGPSDataReady = false;
     double dblLongitude = 0;
     double dblLatitude = 0;
     double dbPrevLongitude = 0;

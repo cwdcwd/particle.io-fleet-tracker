@@ -1,12 +1,7 @@
-#include <SPI.h>
-#include <Wire.h>
-
-#include <mcp_can.h>
-#include <Adafruit_GFX_RK.h>
-#include <Adafruit_SSD1306_RK.h>
-
+// CWD-- Fleet Tracker
 #include "GPSManager.h"
 #include "DisplayManager.h"
+#include "CANManager.h"
 
 #define FULL_DISPLAY_TEST_ON false
 #define SCREEN_REFRESH_RATE 1000000
@@ -16,138 +11,97 @@
 
 bool DEBUG_ON = true;
 
-GPSManager gpsManager;
-DisplayManager displayManager;
+GPSManager *gpsManager = nullptr;
+DisplayManager *displayManager = nullptr;
+CANManager *canManager = nullptr;
 
-// CWD-- CAN Bus
 SYSTEM_THREAD(ENABLED);
 SerialLogHandler logHandler;
 
-long unsigned int rxId;
-unsigned char len = 0;
-unsigned char rxBuf[8];
-char msgString[128]; // Array to store serial string
-
-#define CAN0_INT A1 // Set INT to pin A1
-MCP_CAN CAN0(A2);   // Set CS to pin A2
-
-// CWD-- globals to track state
-bool blnCANDataReady = false;
-
+// CWD-- cellular geocoding callback
 void geocodedlocationCallback(float lat, float lon, float accuracy)
 {
-  gpsManager.log("Cell Geocoded:" + String(lat) + "," + String(lon));
+  gpsManager->log("Cell Geocoded:" + String(lat) + "," + String(lon));
 
-  if (((gpsManager.getLongitude() == 0) && (gpsManager.getLatitude() == 0)) || (micros() - gpsManager.getLastGPSUpdate()) > gpsManager.getGPSDriftWindow())
+  if (((gpsManager->getLongitude() == 0) && (gpsManager->getLatitude() == 0)) || (micros() - gpsManager->getLastGPSUpdate()) > gpsManager->getGPSDriftWindow())
   { // CWD-- been too long since we updated off GPS. Update off the cellular position instead
-    int s = (micros() - gpsManager.getLastGPSUpdate()) / 1000000;
-    gpsManager.log("GPS hasn't been updated in " + String(s) + " seconds. Updating from cellular positioning");
-    gpsManager.setAreCoordsFromGPS(false);
-    gpsManager.setLongitude(lon);
-    gpsManager.setLatitude(lat);
+    int s = (micros() - gpsManager->getLastGPSUpdate()) / 1000000;
+    gpsManager->log("GPS hasn't been updated in " + String(s) + " seconds. Updating from cellular positioning");
+    gpsManager->setAreCoordsFromGPS(false);
+    gpsManager->setLongitude(lon);
+    gpsManager->setLatitude(lat);
+    gpsManager->setIsGPSDataReady(true);
   }
 }
 
 // CWD-- particle accessors
 double getLong()
 {
-  return gpsManager.getLongitude();
+  return gpsManager->getLongitude();
 }
 
 double getPrevLong()
 {
-  return gpsManager.getPrevLongitude();
+  return gpsManager->getPrevLongitude();
 }
 
 double getLat()
 {
-  return gpsManager.getLatitude();
+  return gpsManager->getLatitude();
 }
 
 double getPrevLat()
 {
-  return gpsManager.getPrevLatitude();
+  return gpsManager->getPrevLatitude();
 }
 
 double getAlt()
 {
-  return gpsManager.getAltitude();
+  return gpsManager->getAltitude();
 }
 
 double getSpeed()
 {
-  return gpsManager.getSpeed();
+  return gpsManager->getSpeed();
 }
 
 String getDate()
 {
-  return gpsManager.getDate();
+  return gpsManager->getDate();
 }
 
 String getTime()
 {
-  return gpsManager.getTime();
+  return gpsManager->getTime();
 }
 
 int getSatellitesCount()
 {
-  return gpsManager.getSatellitesCount();
+  return gpsManager->getSatellitesCount();
 }
 
 unsigned long lastGPSUpdate()
 {
-  return gpsManager.getLastGPSUpdate();
+  return gpsManager->getLastGPSUpdate();
 }
 
 bool areCoordsFromGPS()
 {
-  return gpsManager.areCoordsFromGPS();
+  return gpsManager->areCoordsFromGPS();
 }
 
-void updateCAN()
-{
-  if (!digitalRead(CAN0_INT)) // If CAN0_INT pin is low, read receive buffer
-  {
-    CAN0.readMsgBuf(&rxId, &len, rxBuf); // Read data: len = data length, buf = data byte(s)
-
-    if ((rxId & 0x80000000) == 0x80000000) // Determine if ID is standard (11 bits) or extended (29 bits)
-      sprintf(msgString, "Extended ID: 0x%.8lX  DLC: %1d  Data:", (rxId & 0x1FFFFFFF), len);
-    else
-      sprintf(msgString, "Standard ID: 0x%.3lX       DLC: %1d  Data:", rxId, len);
-
-    Serial.print(msgString);
-
-    if ((rxId & 0x40000000) == 0x40000000)
-    { // Determine if message is a remote request frame.
-      sprintf(msgString, " REMOTE REQUEST FRAME");
-      Serial.print(msgString);
-    }
-    else
-    {
-      for (byte i = 0; i < len; i++)
-      {
-        sprintf(msgString, " 0x%.2X", rxBuf[i]);
-        Serial.print(msgString);
-      }
-    }
-
-    Serial.println();
-    blnCANDataReady = true;
-  }
-}
 
 // CWD-- processing
 String formatDecimal(double f) {
   return String(f, 3);
 }
 
-void updateDisplay()
-{
-  String str=gpsManager.getDate() + " " + gpsManager.getTime() + "\n";
-  str+=formatDecimal(gpsManager.getLongitude()) + "," + formatDecimal(gpsManager.getLatitude()) + (gpsManager.areCoordsFromGPS() ? "(g)" : "(c)")+"\n";
-  str+="Alt:" + formatDecimal(gpsManager.getAltitude())+"\n";
-  str+="Sat Count:" + String(gpsManager.getSatellitesCount())+"\n";
-  displayManager.update(str);
+void updateDisplay() {
+  String str=gpsManager->getDate() + " " + gpsManager->getTime() + "\n";
+  str+=formatDecimal(gpsManager->getLongitude()) + "," + formatDecimal(gpsManager->getLatitude()) + (gpsManager->areCoordsFromGPS() ? "(g)" : "(c)")+"\n";
+  str+="Alt:" + formatDecimal(gpsManager->getAltitude())+"\n";
+  str+="Sat Count:" + String(gpsManager->getSatellitesCount())+"\n";
+  displayManager->update(str);
   //   delay(2000);
 }
 
@@ -169,36 +123,33 @@ void setup()
   Particle.variable("lastGPSUpdate", lastGPSUpdate);
   Particle.variable("coordsFromGPS", areCoordsFromGPS);
 
-  displayManager = DisplayManager(SCREEN_REFRESH_RATE, FULL_DISPLAY_TEST_ON);
-  gpsManager = GPSManager(geocodedlocationCallback, GPS_REFRESH_RATE, CELL_GPS_REFRESH_RATE, GPS_DRIFT_WINDOW, DEBUG_ON);
-
-  // Initialize MCP2515 running at 16MHz with a baudrate of 500kb/s and the masks and filters disabled.
-  if (CAN0.begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ) == CAN_OK)
-    Serial.println("MCP2515 Initialized Successfully!");
-  else
-    Serial.println("Error Initializing MCP2515...");
-
-  CAN0.setMode(MCP_NORMAL); // Set operation mode to normal so the MCP2515 sends acks to received data.
-  pinMode(CAN0_INT, INPUT); // Configuring pin for /INT input
-  Serial.println("MCP2515 CAN setup...");
+  Serial.println("Display setup...");
+  displayManager = new DisplayManager(SCREEN_REFRESH_RATE, FULL_DISPLAY_TEST_ON);
+  Serial.println("done.\nGPS setup...");
+  gpsManager = new GPSManager(geocodedlocationCallback, GPS_REFRESH_RATE, CELL_GPS_REFRESH_RATE, GPS_DRIFT_WINDOW, DEBUG_ON);
+  Serial.println("done.\nCAN setup...");
+  canManager = new CANManager(CAN0_DEFAULT_INT, CAN0_DEFAULT_CS, DEBUG_ON);
+  Serial.println("done.");
   Serial.println("System ready!");
 }
 
 // CWD-- main loop
 void loop()
 {
+  gpsManager->update();
+  canManager->update();
 
-  gpsManager.update();
-  updateCAN();
-
-  if (blnCANDataReady && Particle.connected())
+  if (Particle.connected() && canManager->isCANDataReady())
   {
     String str = "{\"data\": [";
+    char strTemp[64];
+    unsigned char *canData = canManager->getCANData();
+    int len = CAN_DATA_BUFFER_SIZE;
 
     for (byte i = 0; i < len; i++)
     {
-      sprintf(msgString, "\"0x%.2X\",", rxBuf[i]);
-      str += msgString;
+      sprintf(strTemp, "\"0x%.2X\",", canData[i]);
+      str += strTemp;
     }
 
     str.remove(str.length() - 1);
@@ -208,6 +159,24 @@ void loop()
     // log(str);
     Particle.publish("CAN_data", str);
     // log("Published CAN data");
-    blnCANDataReady = false;
+    canManager->setCANDataReady(false);
   }
+
+  if (Particle.connected() && gpsManager->isGPSDataReady()) {
+    if ((micros() - gpsManager->getLastGPSUpdate()) > gpsManager->getGPSRefreshInterveral()) { // CWD-- update the location via GPS on an interval
+      if ((gpsManager->getLongitude() != gpsManager->getPrevLongitude()) && (gpsManager->getLatitude() != gpsManager->getPrevLatitude()) ) { //(dblLongitude!=0)&&(dblLatitude!=0)&&
+        gpsManager->log("Publishing real GPS coords...");
+        char locationBeacon[256];
+        snprintf(locationBeacon, sizeof(locationBeacon), "{\n\t\"longitude: %f\",\n\t\"latitude\": %f,\n\t\"altitude\": %f\n }", gpsManager->getLongitude(), gpsManager->getLatitude(), gpsManager->getAltitude());
+        gpsManager->log(locationBeacon);
+        Particle.publish(PUB_PREFIX + "gps", locationBeacon);
+        gpsManager->log("Published real GPS coords.");
+        gpsManager->setLastGPSUpdate(micros());
+      } else {
+        // writeDebug("Real GPS location has not changed. Not publishing");
+      }
+    }
+  }
+
+ updateDisplay();
 }

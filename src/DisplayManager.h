@@ -52,8 +52,6 @@ class DisplayManager
         void testdrawroundrect(void);
         void testfillroundrect(void);
         void testdrawtriangle(void);
-        void testfillroundrect(void);
-        void testdrawtriangle(void);
         void testfilltriangle(void);
         void testdrawchar(void);
         void testdrawstyles(void);

@@ -3,7 +3,7 @@
 #include <TinyGPS++.h>
 #include <google-maps-device-locator.h>
 
-GPSManager::GPSManager(GoogleMapsDeviceLocatorSubscriptionCallback googleCallback, unsigned long gpsRefreshInterveral, unsigned long cellRefreshInterveral, unsigned long gpsDriftWindow, bool debugOn = false) : blnDebugOn(debugOn)
+GPSManager::GPSManager(GoogleMapsDeviceLocatorSubscriptionCallback googleCallback, unsigned long gpsRefreshInterveral, unsigned long cellRefreshInterveral, unsigned long gpsDriftWindow, bool debugOn) : blnDebugOn(debugOn)
 { // Constructor
   ulGPSRefreshInterveral = gpsRefreshInterveral;
   ulCellRefreshInterveral = cellRefreshInterveral;
@@ -16,8 +16,7 @@ GPSManager::GPSManager(GoogleMapsDeviceLocatorSubscriptionCallback googleCallbac
   locator.withEventName(PUB_PREFIX + "cell");
   locator.publishLocation();
   // auto googleCallback = [this](float lat, float lon, float accuracy) { this->geocodedlocationCallback(lat, lon, accuracy); };
-  locator.withSubscribe(googleCallback)
-      .withLocatePeriodic(CELL_GPS_PERIODIC_PUBLISH_INTERVAL);
+  locator.withSubscribe(googleCallback).withLocatePeriodic(CELL_GPS_PERIODIC_PUBLISH_INTERVAL);
 }
 
 GPSManager::~GPSManager()
@@ -43,26 +42,9 @@ void GPSManager::update()
     }
   }
 
-  if ((micros() - lastGPSUpdate) > ulGPSRefreshInterveral) { // CWD-- update the location via GPS
-    if (Particle.connected()) {
-      if ((dblLongitude != dbPrevLongitude) && (dblLatitude != dbPrevLatitude)) { //(dblLongitude!=0)&&(dblLatitude!=0)&&
-        log("Publishing real GPS coords...");
-        char locationBeacon[256];
-        snprintf(locationBeacon, sizeof(locationBeacon), "{\n\t\"longitude: %f\",\n\t\"latitude\": %f,\n\t\"altitude\": %f\n }", dblLongitude, dblLatitude, dblAltitude);
-        log(locationBeacon);
-        Particle.publish(PUB_PREFIX + "gps", locationBeacon);
-        log("Published real GPS coords.");
-        lastGPSUpdate = micros();
-      } else {
-        // writeDebug("Real GPS location has not changed. Not publishing");
-      }
-    } else {
-      log("Can't connect to particle"); // CWD-- need to buffer data
-    }
-  }
 }
 
-void GPSManager::log(String str, bool blnWithNewLine = false)
+void GPSManager::log(String str, bool blnWithNewLine)
 {
   if (blnDebugOn)
   {
@@ -93,8 +75,9 @@ void GPSManager::processData()
     dblLongitude = gps.location.lng();
     dblLatitude = gps.location.lat();
     lastGPSUpdate = micros();
+    blnGPSDataReady = true;
 
-    if (blnDebugOn)
+        if (blnDebugOn)
     {
       log("Latitude= ", false);
       log(String(dblLatitude, 6), false);
@@ -287,6 +270,16 @@ bool GPSManager::areCoordsFromGPS() {
 bool GPSManager::setAreCoordsFromGPS(bool areCoordsFromGPS) {
   bool t = blnCoordsFromGPS;
   blnCoordsFromGPS = areCoordsFromGPS;
+  return t;
+}
+
+bool GPSManager::isGPSDataReady() {
+  return blnGPSDataReady;
+}
+
+bool GPSManager::setIsGPSDataReady(bool isReady) {
+  bool t = blnGPSDataReady;
+  blnGPSDataReady = isReady;
   return t;
 }
 
