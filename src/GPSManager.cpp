@@ -27,7 +27,6 @@ void GPSManager::update()
 {
   // CWD-- Particle Google Maps Integration call
   locator.loop();
-
   checkGPS(); // CWD-- run through the serial buffer and ingest the data
 
   // if ((micros() - lastCellGPSUpdate) > ulCellRefreshInterveral) { // CWD-- update the location via cell geocoding
@@ -256,7 +255,7 @@ void GPSManager::checkGPS()
     byte gpsData = ss.read();
     gps.encode(gpsData);
     processData();
-
+   // delay(100);
     // if(blnDebugOn) {
     Serial.write(gpsData);
     //  }

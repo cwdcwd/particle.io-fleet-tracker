@@ -39,9 +39,11 @@ void DisplayManager::update(String strText) {
 
     for (unsigned int i = 0; i < strText.length(); ++i)
     {
+      // Serial.print(strText.charAt(i));
       display.write(strText.charAt(i));
     }
 
+    display.display();
     lastScreenUpdate = micros();
   }
 }
