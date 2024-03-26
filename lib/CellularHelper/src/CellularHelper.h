@@ -1,10 +1,9 @@
 #ifndef __CELLULARHELPER_H
 #define __CELLULARHELPER_H
 
-#include "Particle.h"
-
 #if Wiring_Cellular
 
+#include "Particle.h"
 
 // Class for quering infromation directly from the ublox SARA modem
 
@@ -139,68 +138,28 @@ public:
 	String toString() const;
 };
 
-class CellularHelperCREGResponse :  public CellularHelperPlusStringResponse {
-public:
-	bool valid = false;
-	int stat = 0;
-	int lac = 0xFFFF;
-	int ci = 0xFFFFFFFF;
-	int rat = 0;
-
-	void postProcess();
-	String toString() const;
-};
 
 /**
  * Class for calling the u-blox SARA modem directly
  */
 class CellularHelperClass {
 public:
-	/**
-	 * Returns a string, typically "u-blox"
-	 */
 	String getManufacturer() const;
 
-	/**
-	 * Returns a string like "SARA-G350", "SARA-U260" or "SARA-U270"
-	 *
-	 */
 	String getModel() const;
 
-	/**
-	 * Returns a tring like "SARA-U260-00S-00".
-	 */
 	String getOrderingCode() const;
 
-	/**
-	 * Returns a string like "23.20"
-	 */
 	String getFirmwareVersion() const;
 
-	/**
-	 * Returns the IMEI for the modem
-	 */
 	String getIMEI() const;
 
-	/**
-	 * Returns the IMSI for the modem
-	 */
 	String getIMSI() const;
 
-	/**
-	 * Returns the IMEI for the SIM card
-	 */
 	String getICCID() const;
 
-	/**
-	 * Returns true if the device is LTE (SARA-R4 at this time)
-	 */
-	bool isLTE() const;
-
-	/**
-	 * Returns the operator name string, something like "AT&T" or "T-Mobile" in the United States.
-	 */
 	String getOperatorName(int operatorNameType = OPERATOR_NAME_LONG_EONS) const;
+
 
 	/**
 	 * Get the RSSI and qual values for the receiving cell site.
@@ -209,50 +168,11 @@ public:
 	 */
 	CellularHelperRSSIQualResponse getRSSIQual() const;
 
-	/**
-	 * @brief Select the mobile operator (in areas where more than 1 carrier is supported by the SIM)
-	 *
-	 * @param mccMnc The MCC/MNC numeric string to identify the carrier. For example:
-	 * 310410 = AT&T
-	 * 310260 = T-Mobile
-	 *
-	 * @return true on success or false on error
-	 *
-	 * You must turn cellular on before making this call, but it's most efficient if you don't Cellular.connect()
-	 * or Particle.connect(). You should use SYSTEM_MODE(SEMI_AUTOMATIC) or SYSTEM_MODE(MANUAL).
-	 *
-	 * If the selected carrier matches, this function return true quickly.
-	 *
-	 * If the carrier needs to be changed it may take 15 seconds or longer for the operation to complete.
-	 *
-	 * Omitting the mccMnc parameter or passing NULL will reset the default automatic mode.
-	 *
-	 * This setting is stored in the modem but reset on power down, so you should reset it from setup().
-	 */
-	bool selectOperator(const char *mccMnc = NULL) const;
 
-	/**
-	 * Gets cell tower information
-	 *
-	 * mode is:
-	 * ENVIRONMENT_SERVING_CELL - only the cell you're connected to
-	 * ENVIRONMENT_SERVING_CELL_AND_NEIGHBORS - note: only works on Electron 2G G350, not 3G models
-	 */
 	void getEnvironment(int mode, CellularHelperEnvironmentResponse &resp) const;
 
 
-	/**
-	 * Gets the location coordinates using the CellLocate feature of the u-blox modem
-	 */
 	CellularHelperLocationResponse getLocation(unsigned long timeoutMs = DEFAULT_TIMEOUT) const;
-
-	/**
-	 * Gets the AT+CREG (registration info including CI and LAC) as an alternative to AT+CGED for SARA-R4 (LTE)
-	 *
-	 * Also works on the SARA-G and SARA-U and is more efficient than getEnvironment(3) (AT+CGED) if you only need the
-	 * CI and LAC and not all of the other information.
-	 */
-	void getCREG(CellularHelperCREGResponse &resp) const;
 
 	/**
 	 * Pings an address. Typically a dotted octet string, but can pass a hostname as well.
@@ -267,17 +187,11 @@ public:
 	 */
 	IPAddress dnsLookup(const char *hostname) const;
 
-	/**
-	 * Used internally to add data to a String object with buffer and length,
-	 * which is not one of the built-in overloads for String. This format is
-	 * what comes from the Cellular.command callbacks.
-	 */
 	void appendBufferToString(String &str, const char *buf, int len, bool noEOL = true) const;
 
 	// Default timeout in milliseconds
 	static const system_tick_t DEFAULT_TIMEOUT = 10000;
 
-	// Mode constants for getEnvironment
 	static const int ENVIRONMENT_SERVING_CELL = 3;
 	static const int ENVIRONMENT_SERVING_CELL_AND_NEIGHBORS = 5;
 

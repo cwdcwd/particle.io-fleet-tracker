@@ -167,98 +167,28 @@ if (addr)
 
 Or when printed as above, will be 0.0.0.0.
 
-## Examples
 
-### 1-Simple Demo
+## Simple Demo
 
 The simple demo tests all of the basic functions in the library, displaying the results to USB serial.
 
 The code examples in this document were taken from this example.
 
 
-### 2-Show Carriers Demo
+## Operator Scan Demo
 
 This is a demo program that uses the cellular modem to scan for available operators, frequency band used, and signal strength. It prints a result like this to USB serial:
 
 ```
-3G AT&T UMTS 850 2 bars (310410)
-2G T-Mobile DCS 1800 or 1900 2 bars (310260)
+3G AT&T 850 MHz 3 bars
+2G T-Mobile 1800 MHz 2 bars
+2G T-Mobile 1800 MHz 2 bars
+2G T-Mobile 1800 MHz 1 bars
+2G T-Mobile 1800 MHz 1 bars
 ```
 
 It should work even when you can't connect to a tower and also display carriers that are not supported by your SIM. (It only displays carriers compatible with the GSM modem, however, so it won't, for example, display Verizon in the United States since that requires a PCS modem.)
 
 This is a very time consuming operation (it can take 2 minutes or longer to run) and it's pretty rarely needed, so it builds on the CellularHelper library but the commands it uses (COPS and COPN) are not part of the library itself because they're so rarely needed.
-
-To build a binary for this, you can download the repository and use the Particle CLI compiler from the top level of it:
-
-```
-particle compile electron examples/2-show-carriers/ --saveTo firmware.bin --target 0.6.0
-```
-
-Then you can flash it to your Electron in DFU mode (blinking yellow):
-
-```
-particle flash --usb firmware.bin
-```
-
-### 3-Select Carrier Demo
-
-The 3-select-carrier example shows how to prefer a certain carrier when multiple carriers are supported by the SIM card.
-
-- You should use SYSTEM_MODE(SEMI_AUTOMATIC) so you can set the carrier before trying to connect.
-- You need to turn the cellular modem on using `cellular_on(NULL)` or `Cellular.on()` (see comments in the code).
-- Call selectOperator() with the MCC/MNC. For example:
-
-```
-	// Select the operator using the MCC/MNC string. For example:
-	// "310410" = AT&T
-	// "310260" = T-Mobile
-	bool bResult = CellularHelper.selectOperator("310260");
-```
-
-The 2-show-carriers example prints out the MCC/MNC for carriers at your location.
-
-- If the operator needs to be changed, it may take around 20 seconds to do so. If the operator is already selected, it returns more or less immediately.
-- The setting of the operator is stored in the modem, but is reset on power down, so you should always select the operator in setup().
-
-On a cold boot, you might see something like this in the USB serial debug log:
-
-```
-     5.297 AT send      12 "AT+UDOPN=0\r\n"
-     5.307 AT read ERR  34 "\r\n+CME ERROR: no network service\r\n"
-     5.307 AT send      22 "AT+COPS=4,2,\"310260\"\r\n"
-    23.778 AT read OK    6 "\r\nOK\r\n"
-0000023789 [app] INFO: selectOperator returned 1
-```
-
-Then, later:
-
-```
-0000042189 [system] INFO: ARM_WLAN_WD 2
-0000042189 [system] INFO: CLR_WLAN_WD 1, DHCP success
-    42.180 AT send      12 "AT+UDOPN=9\r\n"
-    42.220 AT read  +   24 "\r\n+UDOPN: 2,\"T-Mobile\"\r\n"
-    42.230 AT read OK    6 "\r\nOK\r\n"
-0000042241 [app] INFO: current operator=T-Mobile
-```
-
-If you do a warm boot after setting:
-
-```
-     2.507 AT send      12 "AT+UDOPN=0\r\n"
-     2.517 AT read  +   22 "\r\n+UDOPN: 0,\"310260\"\r\n"
-     2.527 AT read OK    6 "\r\nOK\r\n"
-0000002527 [app] INFO: operator already 310260
-0000002527 [app] INFO: selectOperator returned 1
-```
-
-### 4-Test CREG
-
-Simple test of the CREG command, used to get the CI and LAC information on LTE devices (SARA-R410). It also works on the SARA-U and SARA-G.
-
-## Version History
-
-0.0.7 (2018-11-27) Added the getCREG call
-0.0.6 Added selectOperator
 
 

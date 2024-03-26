@@ -1,5 +1,5 @@
 #include "Particle.h"
-#include "google-maps-device-locator.h"
+#include "locator.h"
 
 #if Wiring_Cellular
 # include "CellularHelper.h"
@@ -9,21 +9,21 @@ static char requestBuf[256];
 static char *requestCur;
 static int numAdded = 0;
 
-GoogleMapsDeviceLocator::GoogleMapsDeviceLocator() : locatorMode(LOCATOR_MODE_MANUAL), periodMs(10000), eventName("deviceLocator"),
-	stateTime(0), state(CONNECT_WAIT_STATE), callback(NULL), waitAfterConnect(8000) {
+Locator::Locator() : locatorMode(LOCATOR_MODE_MANUAL), periodMs(10000), eventName("deviceLocator"), publicEvent(false),
+	stateTime(0), state(CONNECT_WAIT_STATE), callback(NULL), waitAfterConnect(8000), wifiConsiderIp(true) {
 
 }
 
-GoogleMapsDeviceLocator::~GoogleMapsDeviceLocator() {
+Locator::~Locator() {
 
 }
 
-GoogleMapsDeviceLocator &GoogleMapsDeviceLocator::withLocateOnce() {
+Locator &Locator::withLocateOnce() {
 	locatorMode = LOCATOR_MODE_ONCE;
 	return *this;
 }
 
-GoogleMapsDeviceLocator &GoogleMapsDeviceLocator::withLocatePeriodic(unsigned long secondsPeriodic) {
+Locator &Locator::withLocatePeriodic(unsigned long secondsPeriodic) {
 	locatorMode = LOCATOR_MODE_PERIODIC;
 	if (secondsPeriodic < 5) {
 		secondsPeriodic = 5;
@@ -32,31 +32,37 @@ GoogleMapsDeviceLocator &GoogleMapsDeviceLocator::withLocatePeriodic(unsigned lo
 	return *this;
 }
 
-GoogleMapsDeviceLocator &GoogleMapsDeviceLocator::withEventName(const char *name) {
+Locator &Locator::withEventName(const char *name) {
 	this->eventName = name;
 	return *this;
 }
 
-GoogleMapsDeviceLocator &GoogleMapsDeviceLocator::withSubscribe(GoogleMapsDeviceLocatorSubscriptionCallback callback) {
+Locator &Locator::withPublicEvent() {
+	this->publicEvent = true;
+	return *this;
+}
+
+Locator &Locator::withSubscribe(LocatorSubscriptionCallback callback, bool onlyThisDevice) {
 	this->callback = callback;
 
-	snprintf(requestBuf, sizeof(requestBuf), "hook-response/%s/%s", eventName.c_str(), System.deviceID().c_str());
-
-	Particle.subscribe(requestBuf, &GoogleMapsDeviceLocator::subscriptionHandler, this, MY_DEVICES);
+	if (onlyThisDevice) {
+		snprintf(requestBuf, sizeof(requestBuf), "hook-response/%s/%s", eventName.c_str(), System.deviceID().c_str());
+	}
+	else {
+		snprintf(requestBuf, sizeof(requestBuf), "hook-response/%s", eventName.c_str());
+	}
+	Particle.subscribe(requestBuf, &Locator::subscriptionHandler, this, MY_DEVICES);
 
 	return *this;
 }
 
-GoogleMapsDeviceLocator &GoogleMapsDeviceLocator::withOperator(const char *oper, int mcc, int mnc) {
-	this->oper = oper;
-	this->mcc = mcc;
-	this->mnc = mnc;
+Locator &Locator::withWiFiConsiderIp(bool value) {
+	wifiConsiderIp = value;
 	return *this;
 }
 
 
-
-void GoogleMapsDeviceLocator::loop() {
+void Locator::loop() {
 	switch(state) {
 	case CONNECT_WAIT_STATE:
 		if (Particle.connected()) {
@@ -105,7 +111,7 @@ void GoogleMapsDeviceLocator::loop() {
 
 }
 
-const char *GoogleMapsDeviceLocator::scan() {
+const char *Locator::scan() {
 #if Wiring_WiFi
 	return wifiScan();
 #endif
@@ -115,7 +121,7 @@ const char *GoogleMapsDeviceLocator::scan() {
 }
 
 
-void GoogleMapsDeviceLocator::publishLocation() {
+void Locator::publishLocation() {
 
 	Serial.println("publishLocation");
 
@@ -126,12 +132,17 @@ void GoogleMapsDeviceLocator::publishLocation() {
 	if (scanData[0]) {
 
 		if (Particle.connected()) {
-			Particle.publish(eventName, scanData, PRIVATE);
+			if (publicEvent) {
+				Particle.publish(eventName, scanData);
+			}
+			else {
+				Particle.publish(eventName, scanData, PRIVATE);
+			}
 		}
 	}
 }
 
-void GoogleMapsDeviceLocator::subscriptionHandler(const char *event, const char *data) {
+void Locator::subscriptionHandler(const char *event, const char *data) {
 	// event: hook-response/deviceLocator/<deviceid>/0
 
 	if (callback) {
@@ -180,12 +191,12 @@ static void wifiScanCallback(WiFiAccessPoint* wap, void* data) {
 }
 
 
-const char *GoogleMapsDeviceLocator::wifiScan() {
+const char *Locator::wifiScan() {
 
 	requestCur = requestBuf;
 	numAdded = 0;
 
-	requestCur += sprintf(requestCur, "{\"w\":{\"a\":");
+	requestCur += sprintf(requestCur, "{\"w\":{\"i\":%s,\"a\":", wifiConsiderIp ? "true" : "false");
 	*requestCur++ = '[';
 
 	WiFi.scan(wifiScanCallback);
@@ -224,110 +235,7 @@ static void cellularAddTower(const CellularHelperEnvironmentCellData *cellData) 
 
 }
 
-#if HAS_CELLULAR_GLOBAL_IDENTITY
-const char *GoogleMapsDeviceLocator::cellularScanCGI() {
-
-	*requestCur = 0;
-
-	// getOperatorName (AT+UDOPN) is not supported on LTE (SARA-R410M-02-B) but the function
-	// will return an empty string which is fine.
-	String oper = CellularHelper.getOperatorName();
-
-	CellularGlobalIdentity cgi = {0};
-	cgi.size = sizeof(CellularGlobalIdentity);
-	cgi.version = CGI_VERSION_LATEST;
-
-	cellular_result_t res = cellular_global_identity(&cgi, NULL);
-	if (res == SYSTEM_ERROR_NONE) {
-		// We know these things fit, so just using sprintf instead of snprintf here
-		requestCur += sprintf(requestCur, "{\"c\":{\"o\":\"%s\",", oper.c_str());
-
-		requestCur += sprintf(requestCur, "\"a\":[");
-
-		requestCur += sprintf(requestCur,
-					"{\"i\":%lu,\"l\":%u,\"c\":%u,\"n\":%u}",
-					cgi.cell_id, cgi.location_area_code, cgi.mobile_country_code, cgi.mobile_network_code);
-
-		numAdded++;
-
-		*requestCur++ = ']';
-		*requestCur++ = '}';
-		*requestCur++ = '}';
-		*requestCur++ = 0;
-	}
-	else {
-		// Serial.printlnf("cellular_global_identity failed %d", res);
-	}
-
-	return requestBuf;
-}
-#endif /* HAS_CELLULAR_GLOBAL_IDENTITY */
-
-// This is only useful on the Electron and E Series LTE before Device OS 1.2.1.
-// It does not work on the Boron LTE. The cellular global identity (CGI) version
-// is better, and this will eventually be deprecated.
-const char *GoogleMapsDeviceLocator::cellularScanLTE() {
-
-	CellularHelperCREGResponse resp;
-	CellularHelper.getCREG(resp);
-
-	// Serial.println(resp.toString().c_str());
-
-	// We know these things fit, so just using sprintf instead of snprintf here
-	requestCur += sprintf(requestCur, "{\"c\":{\"o\":\"%s\",", oper.c_str());
-
-	requestCur += sprintf(requestCur, "\"a\":[");
-
-	if (resp.valid) {
-		requestCur += sprintf(requestCur,
-					"{\"i\":%d,\"l\":%u,\"c\":%d,\"n\":%d}",
-					resp.ci, resp.lac, mcc, mnc);
-
-		numAdded++;
-	}
-
-	*requestCur++ = ']';
-	*requestCur++ = '}';
-	*requestCur++ = '}';
-	*requestCur++ = 0;
-
-
-
-	if (numAdded == 0) {
-		requestBuf[0] = 0;
-	}
-
-	return requestBuf;
-}
-
-
-const char *GoogleMapsDeviceLocator::cellularScan() {
-
-	requestCur = requestBuf;
-	numAdded = 0;
-
-#if HAS_CELLULAR_GLOBAL_IDENTITY
-	{
-		static bool modelChecked = false;
-		static bool useCGI = false;
-
-		if (!modelChecked) {
-			modelChecked = true;
-
-			// Use Cellular Global Identity (CGI) on Device OS 1.2.1 and later
-			// if the modem is not a global 2G (G350). On the G350, AT+CGEG=5
-			// works so a better multi-tower result can be returned.
-			useCGI = !CellularHelper.getModel().startsWith("SARA-G350");
-		}
-		if (useCGI) {
-			return cellularScanCGI();
-		}
-	}
-#endif
-
-	if (CellularHelper.isLTE()) {
-		return cellularScanLTE();
-	}
+const char *Locator::cellularScan() {
 
 	// First try to get info on neighboring cells. This doesn't work for me using the U260
 	CellularHelperEnvironmentResponseStatic<4> envResp;
@@ -340,6 +248,9 @@ const char *GoogleMapsDeviceLocator::cellularScan() {
 	}
 	// envResp.serialDebug();
 
+
+	requestCur = requestBuf;
+	numAdded = 0;
 
 	// We know these things fit, so just using sprintf instead of snprintf here
 	requestCur += sprintf(requestCur, "{\"c\":{\"o\":\"%s\",",
@@ -365,6 +276,25 @@ const char *GoogleMapsDeviceLocator::cellularScan() {
 	return requestBuf;
 }
 
+// [static]
+/*
+String Locator::getLocation() {
+	if (!Cellular.ready()) {
+		strcpy(requestBuf, "{\"valid\":false}");
+		return requestBuf;
+	}
+
+	CellularHelperLocationResponse locResp = CellularHelper.getLocation(10000);
+
+	if (locResp.valid) {
+		return String::format("{\"valid\":true,\"lat\":%f,\"lon\":%f,\"alt\":%d,\"un\":%d}",
+				locResp.lat, locResp.lon, locResp.alt, locResp.uncertainty);
+	}
+	else {
+		return "{\"valid\":false}";
+	}
+}
+*/
 
 #endif /* Wiring_Cellular */
 

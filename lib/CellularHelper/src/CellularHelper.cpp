@@ -2,28 +2,7 @@
 
 #include "CellularHelper.h"
 
-// This check is here so it can be a library dependency for a library that's compiled for both
-// cellular and Wi-Fi.
 #if Wiring_Cellular
-
-// When using system firmware 0.6.0RC1 or later, use the actual Log object, but for older
-// versions just add a dummy class that does nothing so the code will compile.
-#ifndef SYSTEM_VERSION_060RC1
-class LogClass {
-public:
-	inline void info(const char *fmt, ...) {
-		// This is used in the unit test, not running on an actual device
-		/*
-		va_list ap;
-		va_start(ap, fmt);
-		vprintf(fmt, ap);
-		va_end(ap);
-		printf("\n");
-		*/
-	}
-};
-static LogClass Log;
-#endif
 
 CellularHelperClass CellularHelper;
 
@@ -59,7 +38,7 @@ void CellularHelperCommonResponse::logCellularDebug(int type, const char *buf, i
 		break;
 
 	case TYPE_BUSY:
-		typeStr = "TYPE_BUSY";
+		typeStr = "TYPE_NODIALTONE";
 		break;
 
 	case TYPE_NOANSWER:
@@ -224,6 +203,7 @@ int CellularHelperEnvironmentResponse::parse(int type, const char *buf, int len)
 		logCellularDebug(type, buf, len);
 	}
 
+
 	if (type == TYPE_UNKNOWN || type == TYPE_PLUS) {
 		// We get this for AT+CGED=5
 		// Copy to temporary string to make processing easier
@@ -327,71 +307,60 @@ bool CellularHelperEnvironmentCellData::isValid(bool ignoreCI) const {
 
 
 void CellularHelperEnvironmentCellData::addKeyValue(const char *key, const char *value) {
-	char ucCopy[16];
-	if (strlen(key) > (sizeof(ucCopy) - 1)) {
-		Log.info("key too long key=%s value=%s", key, value);
-		return;
-	}
-	size_t ii = 0;
-	for(; key[ii]; ii++) {
-		ucCopy[ii] = toupper(key[ii]);
-	}
-	ucCopy[ii] = 0;
-
-	if (strcmp(ucCopy, "RAT") == 0) {
+	if (strcmp(key, "RAT") == 0) {
 		isUMTS = (strstr(value, "UMTS") != NULL);
 	}
 	else
-	if (strcmp(ucCopy, "MCC") == 0) {
+	if (strcmp(key, "MCC") == 0) {
 		mcc = atoi(value);
 	}
 	else
-	if (strcmp(ucCopy, "MNC") == 0) {
+	if (strcmp(key, "MNC") == 0) {
 		mnc = atoi(value);
 	}
 	else
-	if (strcmp(ucCopy, "LAC") == 0) {
+	if (strcmp(key, "LAC") == 0) {
 		lac = (int) strtol(value, NULL, 16); // hex
 	}
 	else
-	if (strcmp(ucCopy, "CI") == 0) {
+	if (strcmp(key, "CI") == 0) {
 		ci = (int) strtol(value, NULL, 16); // hex
 	}
 	else
-	if (strcmp(ucCopy, "BSIC") == 0) {
+	if (strcmp(key, "BSIC") == 0) {
 		bsic = (int) strtol(value, NULL, 16); // hex
 	}
 	else
-	if (strcmp(ucCopy, "ARFCN") == 0) { // Usually "Arfcn"
+	if (strcmp(key, "Arfcn") == 0) {
 		// Documentation says this is hex, but this does not appear to be the case!
 		// arfcn = (int) strtol(value, NULL, 16); // hex
 		arfcn = atoi(value);
 	}
 	else
-	if (strcmp(ucCopy, "ARFCN_DED") == 0 || strcmp(ucCopy, "RXLEVSUB") == 0 || strcmp(ucCopy, "T_ADV") == 0) {
-		// Ignored 2G fields: Arfcn_ded, RxLevSub, t_adv
+	if (strcmp(key, "Arfcn_ded") == 0 || strcmp(key, "RxLevSub") == 0 || strcmp(key, "t_adv") == 0) {
+		// Ignored 2G fields
 	}
 	else
-	if (strcmp(ucCopy, "RXLEV") == 0) { // Sometimes RxLev
+	if (strcmp(key, "RxLev") == 0 || strcmp(key, "RXLEV") == 0) {
 		rxlev = (int) strtol(value, NULL, 16); // hex
 	}
 	else
-	if (strcmp(ucCopy, "DLF") == 0) {
+	if (strcmp(key, "DLF") == 0) {
 		dlf = atoi(value);
 	}
 	else
-	if (strcmp(ucCopy, "ULF") == 0) {
+	if (strcmp(key, "ULF") == 0) {
 		ulf = atoi(value);
 
 		// For AT+COPS=5, we don't get a RAT, but if ULF is present it's 3G
 		isUMTS = true;
 	}
 	else
-	if (strcmp(ucCopy, "RSCP LEV") == 0) {
+	if (strcmp(key, "RSCP LEV") == 0) {
 		rscpLev = atoi(value);
 	}
 	else
-	if (strcmp(ucCopy, "RAC") == 0 || strcmp(ucCopy, "SC") == 0 || strcmp(ucCopy, "ECN0 LEV") == 0) {
+	if (strcmp(key, "RAC") == 0 || strcmp(key, "SC") == 0 || strcmp(key, "ECN0 LEV") == 0) {
 		// We get these with AT+COPS=5, but we don't need the values
 	}
 	else {
@@ -496,9 +465,8 @@ String CellularHelperEnvironmentCellData::getBandString() const {
 	}
 	else {
 		// 2G, use arfcn
-
 		if (arfcn >= 512 && arfcn <= 885) {
-			band = "DCS 1800 or 1900";
+			band = "DCS 1800";
 		}
 		else
 		if (arfcn >= 975 && arfcn <= 1024) {
@@ -644,32 +612,6 @@ String CellularHelperLocationResponse::toString() const {
 	}
 }
 
-void CellularHelperCREGResponse::postProcess() {
-	// "\r\n+CREG: 2,1,\"FFFE\",\"C45C010\",8\r\n"
-	int n;
-
-	if (sscanf(string.c_str(), "%d,%d,\"%x\",\"%x\",%d", &n, &stat, &lac, &ci, &rat) == 5) {
-		// SARA-R4 does include the n (5 parameters)
-		valid = true;
-	}
-	else
-	if (sscanf(string.c_str(), "%d,\"%x\",\"%x\",%d", &stat, &lac, &ci, &rat) == 4) {
-		// SARA-U and SARA-G don't include the n (4 parameters)
-		valid = true;
-	}
-
-}
-
-String CellularHelperCREGResponse::toString() const {
-	if (valid) {
-		return String::format("stat=%d lac=0x%x ci=0x%x rat=%d", stat, lac, ci, rat);
-	}
-	else {
-		return "valid=false";
-	}
-}
-
-
 String CellularHelperClass::getManufacturer() const {
 	CellularHelperStringResponse resp;
 
@@ -727,11 +669,6 @@ String CellularHelperClass::getICCID() const {
 	return resp.string;
 }
 
-bool CellularHelperClass::isLTE() const {
-	return getModel().startsWith("SARA-R4");
-}
-
-
 String CellularHelperClass::getOperatorName(int operatorNameType) const {
 	String result;
 
@@ -769,37 +706,6 @@ CellularHelperRSSIQualResponse CellularHelperClass::getRSSIQual() const {
 
 	return resp;
 }
-
-bool CellularHelperClass::selectOperator(const char *mccMnc) const {
-	CellularHelperStringResponse resp;
-
-	int respCode;
-
-	if (mccMnc == NULL) {
-		// Reset back to automatic mode
-		respCode = Cellular.command(responseCallback, (void *)&resp, DEFAULT_TIMEOUT, "AT+COPS=0\r\n");
-		return (respCode == RESP_OK);
-	}
-
-	String curMccMnc = CellularHelper.getOperatorName(0); // 0 = MCC/MNC
-	if (strcmp(mccMnc, curMccMnc.c_str()) == 0) {
-		// Operator already selected; nothing to do
-		Log.info("operator already %s", mccMnc);
-		return true;
-	}
-
-	if (curMccMnc.length() != 0) {
-		// Disconnect from the current operator if there is an operator set.
-		// On cold boot there won't be a name set and the string will be empty
-		respCode = Cellular.command(responseCallback, (void *)&resp, DEFAULT_TIMEOUT, "AT+COPS=2\r\n");
-	}
-
-	// Connect
-	respCode = Cellular.command(responseCallback, (void *)&resp, 60000, "AT+COPS=4,2,\"%s\"\r\n", mccMnc);
-
-	return (respCode == RESP_OK);
-}
-
 
 void CellularHelperClass::getEnvironment(int mode, CellularHelperEnvironmentResponse &resp) const {
 	resp.command = "CGED";
@@ -845,22 +751,6 @@ CellularHelperLocationResponse CellularHelperClass::getLocation(unsigned long ti
 	}
 
 	return resp;
-}
-
-void CellularHelperClass::getCREG(CellularHelperCREGResponse &resp) const {
-	int tempResp;
-
-	tempResp = Cellular.command(DEFAULT_TIMEOUT, "AT+CREG=2\r\n");
-	if (tempResp == RESP_OK) {
-		resp.command = "CREG";
-		resp.resp = Cellular.command(responseCallback, (void *)&resp, DEFAULT_TIMEOUT, "AT+CREG?\r\n");
-		if (resp.resp == RESP_OK) {
-			resp.postProcess();
-
-			// Set back to default
-			tempResp = Cellular.command(DEFAULT_TIMEOUT, "AT+CREG=0\r\n");
-		}
-	}
 }
 
 

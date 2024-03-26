@@ -1,9 +1,9 @@
 #include <math.h>
 #include "GPSManager.h"
 #include <TinyGPS++.h>
-#include <google-maps-device-locator.h>
+#include <locator.h>
 
-GPSManager::GPSManager(GoogleMapsDeviceLocatorSubscriptionCallback googleCallback, unsigned long gpsRefreshInterveral, unsigned long cellRefreshInterveral, unsigned long gpsDriftWindow, bool debugOn) : blnDebugOn(debugOn)
+GPSManager::GPSManager(LocatorSubscriptionCallback locatorCallback, unsigned long gpsRefreshInterveral, unsigned long cellRefreshInterveral, unsigned long gpsDriftWindow, bool debugOn) : blnDebugOn(debugOn)
 { // Constructor
   ulGPSRefreshInterveral = gpsRefreshInterveral;
   ulCellRefreshInterveral = cellRefreshInterveral;
@@ -15,8 +15,8 @@ GPSManager::GPSManager(GoogleMapsDeviceLocatorSubscriptionCallback googleCallbac
   log("Setting cell gps event name to: " + PUB_PREFIX + "cell");
   locator.withEventName(PUB_PREFIX + "cell");
   locator.publishLocation();
-  // auto googleCallback = [this](float lat, float lon, float accuracy) { this->geocodedlocationCallback(lat, lon, accuracy); };
-  locator.withSubscribe(googleCallback).withLocatePeriodic(CELL_GPS_PERIODIC_PUBLISH_INTERVAL);
+  // auto locatorCallback = [this](float lat, float lon, float accuracy) { this->geocodedlocationCallback(lat, lon, accuracy); };
+  locator.withSubscribe(locatorCallback).withLocatePeriodic(CELL_GPS_PERIODIC_PUBLISH_INTERVAL);
 }
 
 GPSManager::~GPSManager()

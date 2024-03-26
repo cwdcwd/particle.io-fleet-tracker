@@ -4,7 +4,7 @@
 #define __GPSManager_h
 
 #include <TinyGPS++.h>
-#include <google-maps-device-locator.h>
+#include <locator.h>
 
 #define ss Serial1
 #define CELL_GPS_PERIODIC_PUBLISH_INTERVAL 120
@@ -12,7 +12,7 @@ const String PUB_PREFIX = "deviceLocation_";
 
 class GPSManager {
   public:
-    explicit GPSManager(GoogleMapsDeviceLocatorSubscriptionCallback googleCallback, unsigned long gpsRefreshInterveral, unsigned long cellRefreshInterveral, unsigned long gpsDriftWindow, bool debugOn = false);
+    explicit GPSManager(LocatorSubscriptionCallback googleCallback, unsigned long gpsRefreshInterveral, unsigned long cellRefreshInterveral, unsigned long gpsDriftWindow, bool debugOn = false);
     ~GPSManager();
 
     void update();
@@ -71,11 +71,11 @@ class GPSManager {
     String strDate;
     String strTime;
 
-    // GoogleMapsDeviceLocatorSubscriptionCallback googleCallback;
+    // LocatorSubscriptionCallback googleCallback;
 
     // GPS objects
     TinyGPSPlus gps;
-    GoogleMapsDeviceLocator locator;
+    Locator locator;
     // void GPSManager::geocodedlocationCallback(float lat, float lon, float accuracy);
 };
 
