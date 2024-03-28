@@ -5,7 +5,7 @@
 
 CANManager::CANManager(int IntPin, int CSPin, bool debugOn) : iIntPin(IntPin), iCSPin(CSPin), blnDebugOn(debugOn), CAN0(iCSPin) {
   pinMode(iIntPin, INPUT);  // Configuring pin for /INT input
-  // CAN0 = MCP_CAN(iCSPin);   // Set CS for CAN0
+  CAN0 = MCP_CAN(iCSPin);   // Set CS for CAN0
   CAN0.setMode(MCP_NORMAL); // Set operation mode to normal so the MCP2515 sends acks to received data.
 
   if (CAN0.begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ) == CAN_OK)

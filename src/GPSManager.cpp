@@ -16,7 +16,7 @@ GPSManager::GPSManager(LocatorSubscriptionCallback locatorCallback, unsigned lon
   locator.withEventName(PUB_PREFIX + "cell");
   locator.publishLocation();
   // auto locatorCallback = [this](float lat, float lon, float accuracy) { this->geocodedlocationCallback(lat, lon, accuracy); };
-  locator.withSubscribe(locatorCallback).withLocatePeriodic(CELL_GPS_PERIODIC_PUBLISH_INTERVAL);
+  //locator.withSubscribe(locatorCallback).withLocatePeriodic(CELL_GPS_PERIODIC_PUBLISH_INTERVAL);
 }
 
 GPSManager::~GPSManager()
@@ -29,17 +29,17 @@ void GPSManager::update()
   locator.loop();
   checkGPS(); // CWD-- run through the serial buffer and ingest the data
 
-  // if ((micros() - lastCellGPSUpdate) > ulCellRefreshInterveral) { // CWD-- update the location via cell geocoding
-  //   if (Particle.connected()) {
-  //     log("Connected to particle...");
-  //     log("Publishing Celluar GPS Locator...");
-  //     locator.publishLocation();
-  //     lastCellGPSUpdate = micros();
-  //     log("Published Celluar GPS Locator event");
-  //   } else {
-  //     log("Can't connect to particle"); // CWD-- need to buffer data
-  //   }
-  // }
+  if ((micros() - lastCellGPSUpdate) > ulCellRefreshInterveral) { // CWD-- update the location via cell geocoding
+    if (Particle.connected()) {
+      log("Connected to particle...");
+      log("Publishing Celluar GPS Locator...");
+      locator.publishLocation();
+      lastCellGPSUpdate = micros();
+      log("Published Celluar GPS Locator event");
+    } else {
+      log("Can't connect to particle"); // CWD-- need to buffer data
+    }
+  }
 
 }
 

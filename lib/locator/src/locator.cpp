@@ -239,7 +239,7 @@ const char *Locator::cellularScan() {
 
 	// First try to get info on neighboring cells. This doesn't work for me using the U260
 	CellularHelperEnvironmentResponseStatic<4> envResp;
-
+Serial.println("cellularScan");
 	CellularHelper.getEnvironment(5, envResp);
 
 	if (envResp.resp != RESP_OK) {
@@ -247,7 +247,7 @@ const char *Locator::cellularScan() {
 		CellularHelper.getEnvironment(3, envResp);
 	}
 	// envResp.serialDebug();
-
+	Serial.printlnf("resp=%d", envResp.resp);
 
 	requestCur = requestBuf;
 	numAdded = 0;
@@ -273,6 +273,7 @@ const char *Locator::cellularScan() {
 		requestBuf[0] = 0;
 	}
 
+	Serial.println(requestCur);
 	return requestBuf;
 }
 

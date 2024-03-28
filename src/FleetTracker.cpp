@@ -16,7 +16,7 @@ DisplayManager *displayManager = nullptr;
 CANManager *canManager = nullptr;
 
 SYSTEM_THREAD(ENABLED);
-SerialLogHandler logHandler;
+SerialLogHandler logHandler(LOG_LEVEL_ALL);
 
 // CWD-- cellular geocoding callback
 void geocodedlocationCallback(float lat, float lon, float accuracy)
@@ -179,4 +179,5 @@ void loop()
   }
 
  updateDisplay();
+ delay(100);
 }
