@@ -255,7 +255,7 @@ Serial.println("cellularScan");
 	// We know these things fit, so just using sprintf instead of snprintf here
 	requestCur += sprintf(requestCur, "{\"c\":{\"o\":\"%s\",",
 			CellularHelper.getOperatorName().c_str());
-
+// Serial.println(CellularHelper.getOperatorName());
 	requestCur += sprintf(requestCur, "\"a\":[");
 
 	cellularAddTower(&envResp.service);
