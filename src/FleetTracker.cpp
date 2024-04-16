@@ -16,7 +16,7 @@ DisplayManager *displayManager = nullptr;
 CANManager *canManager = nullptr;
 
 SYSTEM_THREAD(ENABLED);
-SerialLogHandler logHandler;
+SerialLogHandler logHandler(LOG_LEVEL_ALL);
 
 // CWD-- cellular geocoding callback
 void geocodedlocationCallback(float lat, float lon, float accuracy)
@@ -128,7 +128,7 @@ void setup()
   Serial.println("done.\nGPS setup...");
   gpsManager = new GPSManager(geocodedlocationCallback, GPS_REFRESH_RATE, CELL_GPS_REFRESH_RATE, GPS_DRIFT_WINDOW, DEBUG_ON);
   Serial.println("done.\nCAN setup...");
-  canManager = new CANManager(CAN0_DEFAULT_INT, CAN0_DEFAULT_CS, DEBUG_ON);
+  canManager = new CANManager(CAN0_DEFAULT_INT, CAN0_DEFAULT_CS, false);
   Serial.println("done.");
   Serial.println("System ready!");
 }
@@ -179,4 +179,5 @@ void loop()
   }
 
  updateDisplay();
+ delay(100);
 }
