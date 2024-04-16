@@ -16,7 +16,7 @@ GPSManager::GPSManager(LocatorSubscriptionCallback locatorCallback, unsigned lon
   locator.withEventName(PUB_PREFIX + "cell");
   locator.publishLocation();
   // auto locatorCallback = [this](float lat, float lon, float accuracy) { this->geocodedlocationCallback(lat, lon, accuracy); };
-  //locator.withSubscribe(locatorCallback).withLocatePeriodic(CELL_GPS_PERIODIC_PUBLISH_INTERVAL);
+  locator.withSubscribe(locatorCallback); //.withLocatePeriodic(CELL_GPS_PERIODIC_PUBLISH_INTERVAL);
 }
 
 GPSManager::~GPSManager()
@@ -257,7 +257,7 @@ void GPSManager::checkGPS()
     processData();
    // delay(100);
     // if(blnDebugOn) {
-    Serial.write(gpsData);
+    // Serial.write(gpsData);
     //  }
   }
 }
