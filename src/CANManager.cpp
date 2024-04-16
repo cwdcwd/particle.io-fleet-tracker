@@ -45,7 +45,7 @@ void CANManager::update() {
       if ((rxId & 0x40000000) == 0x40000000)
       { // Determine if message is a remote request frame.
         sprintf(msgString, " REMOTE REQUEST FRAME");
-        log(msgString);
+        // log(msgString);
       }
       else
       {

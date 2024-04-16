@@ -241,39 +241,74 @@ const char *Locator::cellularScan() {
 	CellularHelperEnvironmentResponseStatic<4> envResp;
 Serial.println("cellularScan");
 	CellularHelper.getEnvironment(5, envResp);
+	Serial.printlnf("getEnvironment(5) %d", envResp.resp);
 
 	if (envResp.resp != RESP_OK) {
 		// We couldn't get neighboring cells, so try just the receiving cell
 		CellularHelper.getEnvironment(3, envResp);
+		Serial.printlnf("getEnvironment(3) %d", envResp.resp);
 	}
 	// envResp.serialDebug();
-	Serial.printlnf("resp=%d", envResp.resp);
 
-	requestCur = requestBuf;
-	numAdded = 0;
+	if (envResp.resp == RESP_OK) {
+		requestCur = requestBuf;
+		numAdded = 0;
 
-	// We know these things fit, so just using sprintf instead of snprintf here
-	requestCur += sprintf(requestCur, "{\"c\":{\"o\":\"%s\",",
-			CellularHelper.getOperatorName().c_str());
-// Serial.println(CellularHelper.getOperatorName());
-	requestCur += sprintf(requestCur, "\"a\":[");
+		// We know these things fit, so just using sprintf instead of snprintf here
+		requestCur += sprintf(requestCur, "{\"c\":{\"o\":\"%s\",", CellularHelper.getOperatorName().c_str());
+		// Serial.println(CellularHelper.getOperatorName());
+		requestCur += sprintf(requestCur, "\"a\":[");
+		cellularAddTower(&envResp.service);
 
-	cellularAddTower(&envResp.service);
+		for (size_t ii = 0; ii < envResp.getNumNeighbors(); ii++)
+		{
+			cellularAddTower(&envResp.neighbors[ii]);
+		}
 
-	for(size_t ii = 0; ii < envResp.getNumNeighbors(); ii++) {
-		cellularAddTower(&envResp.neighbors[ii]);
+		*requestCur++ = ']';
+		*requestCur++ = '}';
+		*requestCur++ = '}';
+		*requestCur++ = 0;
+
+		if (numAdded == 0) {
+			requestBuf[0] = 0;
+		}
+
+		Serial.println(requestCur);
+	} else {
+		Serial.printlnf("trying CellularGlobalIdentity since CGED failed %d", envResp.resp);
+		String oper = CellularHelper.getOperatorName();
+		CellularGlobalIdentity cgi = {0};
+		cgi.size = sizeof(CellularGlobalIdentity);
+		cgi.version = CGI_VERSION_LATEST;
+
+		cellular_result_t res = cellular_global_identity(&cgi, NULL);
+
+		if (res == SYSTEM_ERROR_NONE)
+		{
+			Serial.printlnf("cellular_global_identity res: %d", res);
+			requestCur = requestBuf;
+			// We know these things fit, so just using sprintf instead of snprintf here
+			requestCur += sprintf(requestCur, "{\"c\":{\"o\":\"%s\",", oper.c_str());
+
+			requestCur += sprintf(requestCur, "\"a\":[");
+
+			requestCur += sprintf(requestCur, "{\"i\":%lu,\"l\":%u,\"c\":%u,\"n\":%u}",
+														cgi.cell_id, cgi.location_area_code, cgi.mobile_country_code, cgi.mobile_network_code);
+
+			numAdded++;
+			*requestCur++ = ']';
+			*requestCur++ = '}';
+			*requestCur++ = '}';
+			*requestCur++ = 0;
+		}
+		else
+		{
+			Serial.printlnf("cellular_global_identity failed %d", res);
+			requestBuf[0] = 0;
+		}
 	}
 
-	*requestCur++ = ']';
-	*requestCur++ = '}';
-	*requestCur++ = '}';
-	*requestCur++ = 0;
-
-	if (numAdded == 0) {
-		requestBuf[0] = 0;
-	}
-
-	Serial.println(requestCur);
 	return requestBuf;
 }
 
