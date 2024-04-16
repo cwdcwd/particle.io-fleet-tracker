@@ -58,6 +58,8 @@ void CANManager::update() {
     }
 
     blnCANDataReady = true;
+  } else {
+    blnCANDataReady = false;
   }
 }
 
