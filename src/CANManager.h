@@ -31,11 +31,12 @@ class CANManager
     int iCSPin = CAN0_DEFAULT_CS;
     bool blnDebugOn = false;
     bool blnCANDataReady = false;
+    bool blnCANInitialized = false;
     long unsigned int rxId;
     unsigned char len = 0;
     unsigned char data[CAN_DATA_BUFFER_SIZE];
 
-    MCP_CAN CAN0;
+    MCP_CAN *CAN0;
 };
 
 #endif // def(__CANManager_h)
