@@ -29,11 +29,12 @@ void geocodedlocationCallback(float lat, float lon, float accuracy)
   if (((gpsManager->getLongitude() == 0) && (gpsManager->getLatitude() == 0)) || (micros() - gpsManager->getLastGPSUpdate()) > gpsManager->getGPSDriftWindow())
   { // CWD-- been too long since we updated off GPS. Update off the cellular position instead
     int s = (micros() - gpsManager->getLastGPSUpdate()) / 1000000;
-    gpsManager->log("GPS hasn't been updated in " + String(s) + " seconds. Updating from cellular positioning");
+    Log.trace("GPS hasn't been updated in " + String(s) + " seconds. Updating from cellular positioning");
     gpsManager->setAreCoordsFromGPS(false);
     gpsManager->setLongitude(lon);
     gpsManager->setLatitude(lat);
     gpsManager->setIsGPSDataReady(true);
+    gpsManager->setLastGPSUpdate(micros());
   }
 }
 
@@ -100,8 +101,9 @@ String formatDecimal(double f) {
 }
 
 void updateDisplay() {
-  String str=gpsManager->getDate() + " " + gpsManager->getTime() + "\n";
-  str+=formatDecimal(gpsManager->getLongitude()) + "," + formatDecimal(gpsManager->getLatitude()) + (gpsManager->areCoordsFromGPS() ? "(g)" : "(c)")+"\n";
+  time_t time = Time.now();
+  String str = Time.format(time, TIME_FORMAT_ISO8601_FULL) + "\n";
+  str += formatDecimal(gpsManager->getLatitude()) + "," + formatDecimal(gpsManager->getLongitude()) + (gpsManager->areCoordsFromGPS() ? "(g)" : "(c)") + "\n";
   str+="Alt:" + formatDecimal(gpsManager->getAltitude())+"\n";
   str+="Sat Count:" + String(gpsManager->getSatellitesCount())+"\n";
   displayManager->update(str);
@@ -129,7 +131,7 @@ void setup()
   Log.info("Display setup...");
   displayManager = new DisplayManager(SCREEN_REFRESH_RATE, FULL_DISPLAY_TEST_ON);
   Log.info("done.\nGPS setup...");
-  gpsManager = new GPSManager(geocodedlocationCallback, GPS_REFRESH_RATE, CELL_GPS_REFRESH_RATE, GPS_DRIFT_WINDOW, DEBUG_ON);
+  gpsManager = new GPSManager(geocodedlocationCallback, GPS_REFRESH_RATE, CELL_GPS_REFRESH_RATE, GPS_DRIFT_WINDOW, false);
   Log.info("done.\nCAN setup...");
   canManager = new CANManager(CAN0_DEFAULT_INT, CAN0_DEFAULT_CS, DEBUG_ON);
   Log.info("done.");
@@ -195,12 +197,12 @@ void loop()
   {
     String strData = String::format("{ \"longitude\": %f, \"latitude\": %f, \"altitude\": %f, \"speed\": %f, \"satellites\": %d, \"date\": \"%s\", \"time\": \"%s\" }", gpsManager->getLongitude(), gpsManager->getLatitude(), gpsManager->getAltitude(), gpsManager->getSpeed(), gpsManager->getSatellitesCount(), gpsManager->getDate().c_str(), gpsManager->getTime().c_str());
     Log.trace(strData);
-    Log.info("Publishing GPS data: %s", strData.c_str());
+    Log.trace("Publishing GPS data: %s", strData.c_str());
     bool success;
     success = Particle.publish("gps_data", strData.c_str());
 
     if(success)
-      Log.info("Published GPS data");
+      Log.trace("Published GPS data");
     else
       Log.error("Failed to publish GPS data");
 

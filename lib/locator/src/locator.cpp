@@ -122,12 +122,9 @@ const char *Locator::scan() {
 
 
 void Locator::publishLocation() {
-
-	Serial.println("publishLocation");
-
+	Log.trace("publishLocation");
 	const char *scanData = scan();
-
-	Serial.printlnf("scanData=%s", scanData);
+	Log.trace("scanData=%s", scanData);
 
 	if (scanData[0]) {
 
@@ -239,14 +236,14 @@ const char *Locator::cellularScan() {
 
 	// First try to get info on neighboring cells. This doesn't work for me using the U260
 	CellularHelperEnvironmentResponseStatic<4> envResp;
-Serial.println("cellularScan");
+	Log.trace("cellularScan()");
 	CellularHelper.getEnvironment(5, envResp);
-	Serial.printlnf("getEnvironment(5) %d", envResp.resp);
+	Log.trace("getEnvironment(5) %d", envResp.resp);
 
 	if (envResp.resp != RESP_OK) {
 		// We couldn't get neighboring cells, so try just the receiving cell
 		CellularHelper.getEnvironment(3, envResp);
-		Serial.printlnf("getEnvironment(3) %d", envResp.resp);
+		Log.trace("getEnvironment(3) %d", envResp.resp);
 	}
 	// envResp.serialDebug();
 
@@ -274,9 +271,9 @@ Serial.println("cellularScan");
 			requestBuf[0] = 0;
 		}
 
-		Serial.println(requestCur);
+		Log.trace(requestCur);
 	} else {
-		Serial.printlnf("trying CellularGlobalIdentity since CGED failed %d", envResp.resp);
+		Log.trace("trying CellularGlobalIdentity since CGED failed %d", envResp.resp);
 		String oper = CellularHelper.getOperatorName();
 		CellularGlobalIdentity cgi = {0};
 		cgi.size = sizeof(CellularGlobalIdentity);
@@ -286,7 +283,7 @@ Serial.println("cellularScan");
 
 		if (res == SYSTEM_ERROR_NONE)
 		{
-			Serial.printlnf("cellular_global_identity res: %d", res);
+			Log.trace("cellular_global_identity res: %d", res);
 			requestCur = requestBuf;
 			// We know these things fit, so just using sprintf instead of snprintf here
 			requestCur += sprintf(requestCur, "{\"c\":{\"o\":\"%s\",", oper.c_str());
@@ -304,7 +301,7 @@ Serial.println("cellularScan");
 		}
 		else
 		{
-			Serial.printlnf("cellular_global_identity failed %d", res);
+			Log.trace("cellular_global_identity failed %d", res);
 			requestBuf[0] = 0;
 		}
 	}
