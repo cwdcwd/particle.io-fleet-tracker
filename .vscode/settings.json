@@ -13,5 +13,7 @@
     "particle.targetDevice": "e00fce6898c1eab12eb7bf29",
     "C_Cpp.default.cppStandard": "c++17",
     "particle.firmwareVersion": "5.8.0",
-    "particle.targetPlatform": "boron"
+    "particle.targetPlatform": "boron",
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "editor.formatOnSave": true
 }
