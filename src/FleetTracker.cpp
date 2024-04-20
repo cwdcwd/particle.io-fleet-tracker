@@ -31,9 +31,12 @@ const uint32_t OBD_CAN_REPLY_ID = 0x7E8;
 
 // Note: SAE PID codes are 8 bits. Proprietary ones are 16 bits.
 const uint8_t PID_ENGINE_RPM = 0x0C;
+const uint8_t PID_ENGINE_COOLANT_TEMP = 0x05;
+const uint8_t PID_FUEL_LEVEL = 0x2F;
+const uint8_t PID_FUEL_RATE = 0x5E;
 const uint8_t PID_VEHICLE_SPEED = 0x0D;
 
-byte canSendData[8] = {0x02, SERVICE_CURRENT_DATA, PID_ENGINE_RPM, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc};
+byte canSendData[8] = {0x02, SERVICE_CURRENT_DATA, PID_FUEL_RATE, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc};
 /* END CAN SEND TESTING CONSTS */
 
 SYSTEM_THREAD(ENABLED);
@@ -150,8 +153,8 @@ void loop() {
             canManager->setCANDataReady(false);
 
             // CWD-- call for data from the ECU
-            // byte sndStat = canManager->sendData(OBD_CAN_REQUEST_ID, 0, 8,
-            // canSendData); Log.trace("CAN send status: %d", sndStat);
+            byte sndStat = canManager->sendData(OBD_CAN_REQUEST_ID, 0, 8, canSendData);
+            Log.trace("CAN send status: %d", sndStat);
             lastCANPublishTime = millis();
         } else {
             Log.trace("Not publishing CAN data yet. Waiting...");
