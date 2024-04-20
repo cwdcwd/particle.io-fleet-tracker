@@ -6,10 +6,10 @@
 CANManager::CANManager(int IntPin, int CSPin, bool debugOn) : iIntPin(IntPin), iCSPin(CSPin), blnDebugOn(debugOn) {
   pinMode(iIntPin, INPUT);  // INPUT_PULLUP  // Configuring pin for /INT input
   CAN0 = new MCP_CAN(iCSPin);   // Set CS for CAN0
-  CAN0->setMode(MCP_NORMAL); // Set operation mode to normal so the MCP2515 sends acks to received data.
   byte canStatus = CAN0->begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ);
 
   if (canStatus == CAN_OK) {
+    CAN0->setMode(MCP_NORMAL); // Set operation mode to normal so the MCP2515 sends acks to received data.
     blnCANInitialized = true;
 
     if (blnDebugOn) {
