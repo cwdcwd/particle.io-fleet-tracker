@@ -31,7 +31,10 @@ CANManager::~CANManager() {
 
 void CANManager::update() {
   if (blnCANInitialized) {
+    Log.trace("CAN was initialized correctly. Checking for data...");
+
     if (!digitalRead(iIntPin)) { // If iIntPin pin is low, read receive buffer
+      Log.trace("Data available. Reading data...");
       CAN0->readMsgBuf(&rxId, &len, data); // Read data: len = data length, buf = data byte(s)
 
       if (blnDebugOn) {
@@ -58,8 +61,11 @@ void CANManager::update() {
       }
 
       blnCANDataReady = true;
-    } else {
+    }
+    else
+    {
       blnCANDataReady = false;
+      Log.trace("No data available. Exiting update...");
     }
   } else {
     Log.trace("CAN not initialized. Exiting update...");
@@ -100,5 +106,17 @@ void CANManager::setCANData(unsigned char *data) {
 
 unsigned char *CANManager::getCANData() {
     return data;
+}
+
+byte CANManager::sendData(unsigned long id, byte ext, byte len, byte *buf) {
+  byte ret = CAN_FAIL;
+
+  if (blnCANInitialized) {
+    Log.trace("Sending data...");
+    ret = CAN0->sendMsgBuf(id, 0, len, buf);
+    Log.trace("Data sent. Status: %d", ret);
+  }
+
+  return ret;
 }
 

@@ -18,8 +18,23 @@ GPSManager *gpsManager = nullptr;
 DisplayManager *displayManager = nullptr;
 CANManager *canManager = nullptr;
 
+/* CAN SEND TESTING CONSTS */
+const uint8_t SERVICE_CURRENT_DATA = 0x01; // also known as mode 1
+
+// These are the CAN IDs (11-bit) for OBD-II requests to the primary ECU
+// and the CAN ID for the response.
+const uint32_t OBD_CAN_REQUEST_ID = 0x7DF;
+const uint32_t OBD_CAN_REPLY_ID = 0x7E8;
+
+// Note: SAE PID codes are 8 bits. Proprietary ones are 16 bits.
+const uint8_t PID_ENGINE_RPM = 0x0C;
+const uint8_t PID_VEHICLE_SPEED = 0x0D;
+
+byte canSendData[8] = {0x02, SERVICE_CURRENT_DATA, PID_ENGINE_RPM, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc};
+/* END CAN SEND TESTING CONSTS */
+
 SYSTEM_THREAD(ENABLED);
-SerialLogHandler logHandler(LOG_LEVEL_INFO);
+SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 
 // CWD-- cellular geocoding callback
 void geocodedlocationCallback(float lat, float lon, float accuracy)
@@ -146,52 +161,39 @@ void loop()
   gpsManager->update();
   canManager->update();
 
-  if (Particle.connected() && canManager->isCANDataReady())
-  {
-    String str = "{\"data\": [";
-    char strTemp[64];
-    unsigned char *canData = canManager->getCANData();
-    int len = CAN_DATA_BUFFER_SIZE;
-
-    for (byte i = 0; i < len; i++)
-    {
-      sprintf(strTemp, "\"0x%.2X\",", canData[i]);
-      str += strTemp;
-    }
-
-    str.remove(str.length() - 1);
-
-    str += "]}";
-  
-    if((millis() - lastCANPublishTime) > 5000) {
-      Log.trace("Publishing CAN data");
-      Log.trace(str);
-      Particle.publish("CAN_data", str);
-      Log.trace("Published CAN data");
-      canManager->setCANDataReady(false);
-      lastCANPublishTime = millis();
-    } else {
-      Log.trace("Not publishing CAN data yet. Waiting...");
-    }
-    
+  if ((millis() - lastCANPublishTime) > 5000) {
+    byte sndStat = canManager->sendData(OBD_CAN_REQUEST_ID, 0, 8, canSendData);
+    Log.trace("CAN send status: %d", sndStat);
+    lastCANPublishTime = millis();
   }
 
-  // if (Particle.connected() && gpsManager->isGPSDataReady()) {
-  //   if ((micros() - gpsManager->getLastGPSUpdate()) > gpsManager->getGPSRefreshInterveral()) { // CWD-- update the location via GPS on an interval
-  //     if ((gpsManager->getLongitude() != gpsManager->getPrevLongitude()) && (gpsManager->getLatitude() != gpsManager->getPrevLatitude()) ) { //(dblLongitude!=0)&&(dblLatitude!=0)&&
-  //       gpsManager->log("Publishing real GPS coords...");
-  //       char locationBeacon[256];
-  //       snprintf(locationBeacon, sizeof(locationBeacon), "{\n\t\"longitude: %f\",\n\t\"latitude\": %f,\n\t\"altitude\": %f\n }", gpsManager->getLongitude(), gpsManager->getLatitude(), gpsManager->getAltitude());
-  //       gpsManager->log(locationBeacon);
-  //       Particle.publish(PUB_PREFIX + "gps", locationBeacon);
-  //       gpsManager->log("Published real GPS coords.");
-  //       gpsManager->setLastGPSUpdate(micros());
-  //     } else {
-  //       // writeDebug("Real GPS location has not changed. Not publishing");
-  //     }
+  // if (Particle.connected() && canManager->isCANDataReady()) {
+  //   String str = "{\"data\": [";
+  //   char strTemp[64];
+  //   unsigned char *canData = canManager->getCANData();
+  //   int len = CAN_DATA_BUFFER_SIZE;
+
+  //   for (byte i = 0; i < len; i++)
+  //   {
+  //     sprintf(strTemp, "\"0x%.2X\",", canData[i]);
+  //     str += strTemp;
+  //   }
+
+  //   str.remove(str.length() - 1);
+
+  //   str += "]}";
+  
+  //   if((millis() - lastCANPublishTime) > 5000) {
+  //     Log.trace("Publishing CAN data");
+  //     Log.trace(str);
+  //     Particle.publish("CAN_data", str);
+  //     Log.trace("Published CAN data");
+  //     canManager->setCANDataReady(false);
+  //     lastCANPublishTime = millis();
+  //   } else {
+  //     Log.trace("Not publishing CAN data yet. Waiting...");
   //   }
   // }
-  // Serial.println( String::format("%d - %d", millis(), lastGPSPublishTime));
 
   if (Particle.connected() && ((millis() - lastGPSPublishTime) > 5000))
   {

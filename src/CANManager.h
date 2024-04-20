@@ -25,6 +25,7 @@ class CANManager
 
     void setCANData(unsigned char *data);
     unsigned char *getCANData();
+    byte sendData(unsigned long id, byte ext, byte len, byte *buf);
 
   private:
     int iIntPin = CAN0_DEFAULT_INT;
@@ -37,6 +38,6 @@ class CANManager
     unsigned char data[CAN_DATA_BUFFER_SIZE];
 
     MCP_CAN *CAN0;
-};
+    };
 
 #endif // def(__CANManager_h)
