@@ -11,11 +11,13 @@
 #define GPS_DRIFT_WINDOW 45000000
 
 #define PUBLISHING_INTERVAL 5000 // 5 seconds
+#define CAN_SEND_INTERVAL 5000   // 5 second
 
 bool DEBUG_ON = true;
 
 unsigned long lastGPSPublishTime = 0;
 unsigned long lastCANPublishTime = 0;
+unsigned long lastOBDRequestTime = 0;
 
 GPSManager *gpsManager = nullptr;
 DisplayManager *displayManager = nullptr;
@@ -33,10 +35,11 @@ const uint32_t OBD_CAN_REPLY_ID = 0x7E8;
 const uint8_t PID_ENGINE_RPM = 0x0C;
 const uint8_t PID_ENGINE_COOLANT_TEMP = 0x05;
 const uint8_t PID_FUEL_LEVEL = 0x2F;
+const uint8_t PID_FUEL_TYPE = 0x51;
 const uint8_t PID_FUEL_RATE = 0x5E;
 const uint8_t PID_VEHICLE_SPEED = 0x0D;
 
-byte canSendData[8] = {0x02, SERVICE_CURRENT_DATA, PID_FUEL_RATE, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc};
+byte canSendData[8] = {0x02, SERVICE_CURRENT_DATA, 0, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc};
 /* END CAN SEND TESTING CONSTS */
 
 SYSTEM_THREAD(ENABLED);
@@ -125,10 +128,25 @@ void setup() {
     lastCANPublishTime = millis();
 }
 
+byte requestCAN(uint8_t pid) {
+    canSendData[2] = pid;
+    byte sndStat = canManager->sendData(OBD_CAN_REQUEST_ID, 0, 8, canSendData);
+    Log.trace("CAN send status: %d", sndStat);
+    return sndStat;
+}
+
 // CWD-- main loop
 void loop() {
     gpsManager->update();
     canManager->update();
+
+    if ((millis() - lastOBDRequestTime) > CAN_SEND_INTERVAL) {
+        byte sndStat = requestCAN(PID_FUEL_RATE);
+        Log.trace("CAN send status for Fuel Rate request: %d", sndStat);
+        sndStat = requestCAN(PID_FUEL_LEVEL);
+        Log.trace("CAN send status for Fuel Level request: %d", sndStat);
+        lastOBDRequestTime = millis();
+    }
 
     if (Particle.connected() && canManager->isCANDataReady()) {
         String str = "{\"data\": [";
@@ -153,8 +171,6 @@ void loop() {
             canManager->setCANDataReady(false);
 
             // CWD-- call for data from the ECU
-            byte sndStat = canManager->sendData(OBD_CAN_REQUEST_ID, 0, 8, canSendData);
-            Log.trace("CAN send status: %d", sndStat);
             lastCANPublishTime = millis();
         } else {
             Log.trace("Not publishing CAN data yet. Waiting...");
