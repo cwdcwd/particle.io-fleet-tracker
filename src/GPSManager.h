@@ -12,14 +12,15 @@ const String PUB_PREFIX = "deviceLocation_";
 
 class GPSManager {
   public:
-    explicit GPSManager(LocatorSubscriptionCallback googleCallback, unsigned long gpsRefreshInterveral, unsigned long cellRefreshInterveral, unsigned long gpsDriftWindow, bool debugOn = false);
+    explicit GPSManager(LocatorSubscriptionCallback googleCallback, unsigned long gpsRefreshInterveral, unsigned long cellRefreshInterveral,
+                        unsigned long gpsDriftWindow, bool debugOn = false);
     ~GPSManager();
 
     void update();
     void processData();
     void checkGPS();
 
-    //CWD-- getters
+    // CWD-- getters
     bool areCoordsFromGPS();
     bool setAreCoordsFromGPS(bool areCoordsFromGPS);
     bool isGPSDataReady();
@@ -46,7 +47,7 @@ class GPSManager {
 
     static double haversine(double lat1, double lon1, double lat2, double lon2);
 
-  private : // Private members
+  private: // Private members
     bool blnDebugOn = false;
     bool blnCoordsFromGPS = false;
     bool blnGPSDataReady = false;
@@ -60,9 +61,9 @@ class GPSManager {
     double dblSpeed = 0;
 
     int iSatellitesCount = 0;
-    unsigned long lastScreenUpdate;
-    unsigned long lastCellGPSUpdate = 0;
-    unsigned long lastGPSUpdate = 0;
+    unsigned long ulLastScreenUpdate;
+    unsigned long ulLastCellGPSUpdate = 0;
+    unsigned long ulLastGPSUpdate = 0;
 
     unsigned long ulGPSRefreshInterveral = 0;
     unsigned long ulCellRefreshInterveral = 0;

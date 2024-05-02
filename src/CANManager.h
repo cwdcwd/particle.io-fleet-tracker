@@ -8,8 +8,7 @@
 #define CAN0_DEFAULT_CS A2  // Set CS to pin A2
 #define CAN_DATA_BUFFER_SIZE 8
 
-class CANManager
-{
+class CANManager {
   public:
     CANManager(int IntPin, int CSPin, bool debugOn = false);
     ~CANManager();
@@ -25,6 +24,7 @@ class CANManager
 
     void setCANData(unsigned char *data);
     unsigned char *getCANData();
+    long unsigned int getCANRxId();
     byte sendData(unsigned long id, byte ext, byte len, byte *buf);
 
   private:
@@ -38,6 +38,6 @@ class CANManager
     unsigned char data[CAN_DATA_BUFFER_SIZE];
 
     MCP_CAN *CAN0;
-    };
+};
 
 #endif // def(__CANManager_h)

@@ -54,12 +54,13 @@ void geocodedlocationCallback(float lat, float lon, float accuracy) {
                                                                                          // updated off GPS. Update off the
                                                                                          // cellular position instead
         int s = (micros() - gpsManager->getLastGPSUpdate()) / 1000000;
+        Log.trace("Current: %d. Last GPS update: %d. Drift window: %d", micros(), gpsManager->getLastGPSUpdate(), gpsManager->getGPSDriftWindow());
         Log.trace("GPS hasn't been updated in " + String(s) + " seconds. Updating from cellular positioning");
         gpsManager->setAreCoordsFromGPS(false);
         gpsManager->setLongitude(lon);
         gpsManager->setLatitude(lat);
         gpsManager->setIsGPSDataReady(true);
-        gpsManager->setLastGPSUpdate(micros());
+        // gpsManager->setLastGPSUpdate(micros());
     }
 }
 
@@ -149,8 +150,11 @@ void loop() {
     }
 
     if (Particle.connected() && canManager->isCANDataReady()) {
-        String str = "{\"data\": [";
         char strTemp[64];
+        String str = "{\"id\":";
+        sprintf(strTemp, "\"0x%.2X\"", canManager->getCANRxId());
+        str += String(strTemp) + ", \"data\": [";
+
         unsigned char *canData = canManager->getCANData();
         int len = CAN_DATA_BUFFER_SIZE;
 
@@ -163,18 +167,17 @@ void loop() {
 
         str += "]}";
 
-        if ((millis() - lastCANPublishTime) > PUBLISHING_INTERVAL) {
-            Log.trace("Publishing CAN data");
-            Log.trace(str);
-            Particle.publish("CAN_data", str);
-            Log.trace("Published CAN data");
-            canManager->setCANDataReady(false);
-
-            // CWD-- call for data from the ECU
-            lastCANPublishTime = millis();
-        } else {
-            Log.trace("Not publishing CAN data yet. Waiting...");
-        }
+        // if ((millis() - lastCANPublishTime) > PUBLISHING_INTERVAL) {
+        Log.trace("Publishing CAN data");
+        Log.trace(str);
+        Particle.publish("CAN_data_raw", str);
+        Log.trace("Published CAN data");
+        canManager->setCANDataReady(false); // CWD-- may not really be necessary
+        // CWD-- call for data from the ECU
+        lastCANPublishTime = millis();
+        // } else {
+        //     Log.trace("Not publishing CAN data yet. Waiting...");
+        // }
     }
 
     if (Particle.connected() && ((millis() - lastGPSPublishTime) > PUBLISHING_INTERVAL)) {
