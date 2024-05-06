@@ -13,6 +13,9 @@
 #define PUBLISHING_INTERVAL 5000 // 5 seconds
 #define CAN_SEND_INTERVAL 5000   // 5 second
 
+#define PUB_LABEL_CAN "can_data_raw"
+#define PUB_LABEL_GPS "gps_data"
+
 bool DEBUG_ON = true;
 
 unsigned long lastGPSPublishTime = 0;
@@ -170,7 +173,7 @@ void loop() {
         // if ((millis() - lastCANPublishTime) > PUBLISHING_INTERVAL) {
         Log.trace("Publishing CAN data");
         Log.trace(str);
-        Particle.publish("CAN_data_raw", str);
+        Particle.publish(PUB_LABEL_CAN, str);
         Log.trace("Published CAN data");
         canManager->setCANDataReady(false); // CWD-- may not really be necessary
         // CWD-- call for data from the ECU
@@ -188,7 +191,7 @@ void loop() {
         Log.trace(strData);
         Log.trace("Publishing GPS data: %s", strData.c_str());
         bool success;
-        success = Particle.publish("gps_data", strData.c_str());
+        success = Particle.publish(PUB_LABEL_GPS, strData.c_str());
 
         if (success)
             Log.trace("Published GPS data");
