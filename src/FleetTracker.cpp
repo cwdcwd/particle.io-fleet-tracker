@@ -170,17 +170,18 @@ void loop() {
 
         str += "]}";
 
-        // if ((millis() - lastCANPublishTime) > PUBLISHING_INTERVAL) {
-        Log.trace("Publishing CAN data");
-        Log.trace(str);
-        Particle.publish(PUB_LABEL_CAN, str);
-        Log.trace("Published CAN data");
-        canManager->setCANDataReady(false); // CWD-- may not really be necessary
-        // CWD-- call for data from the ECU
-        lastCANPublishTime = millis();
-        // } else {
-        //     Log.trace("Not publishing CAN data yet. Waiting...");
-        // }
+        if ((millis() - lastCANPublishTime) > PUBLISHING_INTERVAL) {
+            Log.trace("Publishing CAN data");
+            Log.trace(str);
+            Particle.publish(PUB_LABEL_CAN, str);
+            Log.trace("Published CAN data");
+            canManager->setCANDataReady(false); // CWD-- may not really be necessary
+            // CWD-- call for data from the ECU
+            lastCANPublishTime = millis();
+        } else {
+            // TODO-- buffer the data and publish it later in bulk
+            Log.trace("Not publishing CAN data yet. Waiting...");
+        }
     }
 
     if (Particle.connected() && ((millis() - lastGPSPublishTime) > PUBLISHING_INTERVAL)) {
